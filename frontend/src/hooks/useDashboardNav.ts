@@ -7,17 +7,27 @@ import { useQuery } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
 import { pathIsActive } from "@/lib/path-active"
-import { resolveNavIcon } from "@/kernel/nav-icons"
+import { resolveNavGroupIcon, resolveNavIcon } from "@/kernel/nav-icons"
+import { groupDefaultOpenForRole, groupVisibleForRole } from "@/kernel/nav-blueprint"
 import { buildAdminNav } from "@/kernel/route-resolver"
 import type { TenantActivation } from "@/kernel/types"
 import { STAFF_ROLES, useAuthUser, userHasCapability } from "@/components/PermissionGate"
 import { useBootstrapQuery } from "@/hooks/useBootstrapQuery"
 
 import type { NavMainItem } from "@/components/sidebar-07/nav-main"
+import type { LucideIcon } from "lucide-react"
 
 export type NavSection = {
+  /** Blueprint group key; stable across renders, used as the React key and for a11y. */
+  groupKey: string
   groupLabel: string
   items: NavMainItem[]
+  icon: LucideIcon
+  collapsible: boolean
+  /** Start expanded for the signed-in role. */
+  defaultOpen: boolean
+  /** Lower sorts first in the mobile quick-access row. */
+  mobilePriority?: number
 }
 
 type MenuAclEntry = { menu_key: string; allowed: boolean }
@@ -66,8 +76,15 @@ export function useDashboardNav() {
     const result: NavSection[] = []
 
     for (const sec of sections) {
+      // Role scoping is a second gate on top of capabilities: capabilities say what a user
+      // may *do*, the blueprint says what they should have to *look at*. A cook holds
+      // kitchen capabilities, not a 200-link sidebar.
+      if (!groupVisibleForRole(sec, role)) continue
+
       const items: NavMainItem[] = []
       for (const item of sec.items) {
+        if (item.roles?.length && !item.roles.includes(role as never)) continue
+        if (item.hideFrom?.length && role && item.hideFrom.includes(role as never)) continue
         if (item.moduleSlug === "coffee-profile" && siteType !== "coffee") continue
         if (hidePortal && isCustomerPortalUrl(item.url)) continue
         if (item.capability && !userHasCapability(capabilities, item.capability)) continue
@@ -76,6 +93,8 @@ export function useDashboardNav() {
         const nested =
           item.items
             ?.filter((child) => {
+              if (child.roles?.length && !child.roles.includes(role as never)) return false
+              if (child.hideFrom?.length && role && child.hideFrom.includes(role as never)) return false
               if (child.capability && !userHasCapability(capabilities, child.capability)) return false
               if (!menuAllowed(child.menuKey, roleAcl)) return false
               return true
@@ -102,14 +121,19 @@ export function useDashboardNav() {
       }
       if (items.length > 0) {
         result.push({
+          groupKey: sec.groupKey ?? sec.section,
           groupLabel: t(sec.labelKey.replace("nav.", "") as never),
           items,
+          icon: resolveNavGroupIcon(sec.icon ?? "overview"),
+          collapsible: sec.collapsible !== false,
+          defaultOpen: groupDefaultOpenForRole(sec, role),
+          mobilePriority: sec.mobilePriority,
         })
       }
     }
 
     return result
-  }, [activations, pathname, t, capabilities, roleAcl, hidePortal, siteType])
+  }, [activations, pathname, t, capabilities, roleAcl, hidePortal, siteType, role])
 
   return { navSections, activations, isLoading: isLoading || authQ.isLoading }
 }

@@ -39,6 +39,7 @@ import {
   Wallet,
   Sparkles,
   Feather,
+  Wrench,
   type LucideIcon,
 } from "lucide-react"
 
@@ -153,6 +154,30 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   group_shop: ShoppingBag,
   group_magazine: Newspaper,
   group_bots: Bot,
+}
+
+/**
+ * Icons for the blueprint's top-level sidebar groups, keyed by `BlueprintGroup.icon`.
+ * These are the nine-plus headings a user actually scans, so they get distinct glyphs
+ * rather than falling through to the generic dashboard icon.
+ */
+const NAV_GROUP_ICONS: Record<string, LucideIcon> = {
+  overview: LayoutDashboard,
+  daily: Coffee,
+  menu: UtensilsCrossed,
+  stock: Package,
+  finance: Wallet,
+  reports: BarChart3,
+  staff: Users,
+  marketing: Megaphone,
+  content: Newspaper,
+  tools: Wrench,
+  admin: Settings,
+}
+
+/** Icon for a blueprint group. Falls back to the generic dashboard glyph. */
+export function resolveNavGroupIcon(iconKey: string): LucideIcon {
+  return NAV_GROUP_ICONS[iconKey] ?? LayoutDashboard
 }
 
 export function resolveNavIcon(url: string, titleKey?: string): LucideIcon {

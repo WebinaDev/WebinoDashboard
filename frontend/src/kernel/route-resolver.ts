@@ -1,4 +1,5 @@
 import { MODULE_MANIFESTS } from "./registry"
+import { orderedBlueprintGroups, type NavAudience } from "./nav-blueprint"
 import type { ResolvedAdminRoute, ResolvedSiteRoute, TenantActivation } from "./types"
 import { DASHBOARD_BASE, dashboardPath } from "./paths"
 
@@ -308,59 +309,68 @@ function matchDynamicParams(pattern: string, actual: string): Record<string, str
   return params
 }
 
-export function buildAdminNav(activations: TenantActivation[]) {
-  type NavLeaf = {
-    titleKey: string
-    url: string
-    moduleSlug: string
-    submodule: string
-    order?: number
-    capability?: string
-    menuKey?: string
-    items?: {
-      titleKey: string
-      url: string
-      moduleSlug: string
-      submodule: string
-      capability?: string
-      menuKey?: string
-    }[]
-  }
-  const items: {
-    section: string
-    labelKey: string
-    order: number
-    items: NavLeaf[]
-  }[] = []
+export type AdminNavItem = {
+  titleKey: string
+  url: string
+  moduleSlug: string
+  submodule: string
+  order?: number
+  capability?: string
+  menuKey?: string
+  /**
+   * Blueprint-only: roles allowed to see this link, applied on top of `capability`.
+   * Empty/undefined means "anyone who can see the group and holds the capability".
+   */
+  roles?: string[]
+  /** Inverse of `roles` — hidden from these roles even when the group is visible. */
+  hideFrom?: string[]
+  items?: AdminNavItem[]
+}
 
-  const sectionMap = new Map<string, (typeof items)[0]>()
-  const groupBuckets = new Map<
-    string,
-    {
-      section: string
-      order: number
-      titleKey: string
-      url: string
-      moduleSlug: string
-      submodule: string
-      capability?: string
-      menuKey?: string
-      children: {
-        titleKey: string
-        url: string
-        moduleSlug: string
-        submodule: string
-        navOrder: number
-        capability?: string
-        menuKey?: string
-      }[]
-    }
-  >()
+export type AdminNavSection = {
+  section: string
+  labelKey: string
+  order: number
+  items: AdminNavItem[]
+  /** Blueprint group key. Absent on sections that fell through to legacy grouping. */
+  groupKey?: string
+  /** Key for `resolveNavGroupIcon`. */
+  icon?: string
+  collapsible?: boolean
+  /** Audiences this group starts expanded for. */
+  defaultOpenFor?: NavAudience[]
+  /** Audiences allowed to see the group at all. */
+  audiences?: NavAudience[]
+  /** Lower sorts first in the mobile quick-access row. */
+  mobilePriority?: number
+}
 
-  // Two modules can claim the same dashboard path (the full ledger and the
-  // commerce till ledger both declare `accounting/*`). Manifest order decides
-  // the winner for routing, so the nav must too — otherwise the sidebar shows
-  // the same link twice, pointing at two different pages.
+/** One enabled, nav-visible route with the manifest metadata the layout needs. */
+type NavLeaf = {
+  /** Manifest route path; `""` is the dashboard root. */
+  path: string
+  titleKey: string
+  url: string
+  moduleSlug: string
+  submodule: string
+  order: number
+  capability?: string
+  menuKey?: string
+  section: string
+  navGroup?: string
+  navOrder: number
+}
+
+/**
+ * Every route that should be reachable from the sidebar for this tenant.
+ *
+ * Two modules can claim the same dashboard path (the full ledger and the commerce till
+ * ledger both declare `accounting/*`). Manifest order decides the winner for routing, so
+ * the nav must too — otherwise the sidebar shows the same link twice, pointing at two
+ * different pages.
+ */
+function collectNavLeaves(activations: TenantActivation[]): NavLeaf[] {
+  const leaves: NavLeaf[] = []
   const seenUrls = new Set<string>()
 
   for (const mod of MODULE_MANIFESTS) {
@@ -369,91 +379,104 @@ export function buildAdminNav(activations: TenantActivation[]) {
       if (route.path.endsWith("/new")) continue
       if (route.path === "catalog") continue
       if (route.navHidden) continue
-      if (seenUrls.has(route.path)) continue
+      const url = route.path === "" ? DASHBOARD_BASE : dashboardPath(route.path)
+      if (seenUrls.has(url)) continue
       if (!isSubmoduleEnabled(activations, mod.slug, route.submodule, { ignoreLicense: true })) continue
-      seenUrls.add(route.path)
-      const section = route.section
-      const sectionOrder = route.order ?? mod.adminNav?.order ?? 99
-      const menuKey = route.menuKey ?? route.path.split("/")[0] ?? route.path
-      if (!sectionMap.has(section)) {
-        sectionMap.set(section, {
-          section,
-          labelKey: `nav.section_${section}`,
-          order: sectionOrder,
-          items: [],
-        })
-      } else {
-        const sec = sectionMap.get(section)!
-        sec.order = Math.min(sec.order, sectionOrder)
-      }
-
-      if (route.navGroup) {
-        const gk = `${section}::${route.navGroup}`
-        if (!groupBuckets.has(gk)) {
-          groupBuckets.set(gk, {
-            section,
-            order: sectionOrder,
-            titleKey: `nav.group_${route.navGroup}`,
-            url: dashboardPath(route.path),
-            moduleSlug: mod.slug,
-            submodule: route.submodule,
-            capability: route.capability,
-            menuKey,
-            children: [],
-          })
-        }
-        const bucket = groupBuckets.get(gk)!
-        bucket.order = Math.min(bucket.order, sectionOrder)
-        if ((route.navOrder ?? 99) < (bucket.children[0]?.navOrder ?? 9999)) {
-          bucket.url = dashboardPath(route.path)
-          bucket.submodule = route.submodule
-          bucket.capability = route.capability
-          bucket.menuKey = menuKey
-        }
-        bucket.children.push({
-          titleKey: route.labelKey,
-          url: dashboardPath(route.path),
-          moduleSlug: mod.slug,
-          submodule: route.submodule,
-          navOrder: route.navOrder ?? 99,
-          capability: route.capability,
-          menuKey,
-        })
-        continue
-      }
-
-      sectionMap.get(section)!.items.push({
+      seenUrls.add(url)
+      leaves.push({
+        path: route.path,
         titleKey: route.labelKey,
-        url: route.path === "" ? DASHBOARD_BASE : dashboardPath(route.path),
+        url,
         moduleSlug: mod.slug,
         submodule: route.submodule,
-        order: sectionOrder,
+        order: route.order ?? mod.adminNav?.order ?? 99,
         capability: route.capability,
-        menuKey,
+        menuKey: route.menuKey ?? route.path.split("/")[0] ?? route.path,
+        section: route.section,
+        navGroup: route.navGroup,
+        navOrder: route.navOrder ?? 99,
       })
     }
   }
+  return leaves
+}
 
-  for (const bucket of groupBuckets.values()) {
+function leafToItem(
+  leaf: NavLeaf,
+  roles?: string[],
+  hideFrom?: string[],
+): AdminNavItem {
+  return {
+    titleKey: leaf.titleKey,
+    url: leaf.url,
+    moduleSlug: leaf.moduleSlug,
+    submodule: leaf.submodule,
+    order: leaf.order,
+    capability: leaf.capability,
+    menuKey: leaf.menuKey,
+    roles,
+    hideFrom,
+  }
+}
+
+function byManifestOrder(a: NavLeaf, b: NavLeaf): number {
+  if (a.order !== b.order) return a.order - b.order
+  return a.url.localeCompare(b.url)
+}
+
+function matchesPrefix(path: string, prefix: string): boolean {
+  if (prefix.endsWith("/")) return path.startsWith(prefix)
+  return path === prefix || path.startsWith(`${prefix}/`)
+}
+
+/**
+ * Legacy manifest-derived grouping, kept for site types the blueprint does not describe
+ * (resume, blog, poetry, courses) and for any newly added module that has not been
+ * assigned a blueprint group yet. Nothing enabled ever disappears from the sidebar.
+ */
+function legacySections(leaves: NavLeaf[]): AdminNavSection[] {
+  const sectionMap = new Map<string, AdminNavSection>()
+  const buckets = new Map<string, { section: string; order: number; navGroup: string; children: NavLeaf[] }>()
+
+  for (const leaf of leaves) {
+    if (!sectionMap.has(leaf.section)) {
+      sectionMap.set(leaf.section, {
+        section: leaf.section,
+        labelKey: `nav.section_${leaf.section}`,
+        order: leaf.order,
+        items: [],
+      })
+    } else {
+      const sec = sectionMap.get(leaf.section)!
+      sec.order = Math.min(sec.order, leaf.order)
+    }
+    if (leaf.navGroup) {
+      const key = `${leaf.section}::${leaf.navGroup}`
+      if (!buckets.has(key)) {
+        buckets.set(key, { section: leaf.section, order: leaf.order, navGroup: leaf.navGroup, children: [] })
+      }
+      const bucket = buckets.get(key)!
+      bucket.order = Math.min(bucket.order, leaf.order)
+      bucket.children.push(leaf)
+      continue
+    }
+    sectionMap.get(leaf.section)!.items.push(leafToItem(leaf))
+  }
+
+  for (const bucket of buckets.values()) {
     const sec = sectionMap.get(bucket.section)
     if (!sec) continue
     bucket.children.sort((a, b) => a.navOrder - b.navOrder)
+    const head = bucket.children[0]
     sec.items.push({
-      titleKey: bucket.titleKey,
-      url: bucket.url,
-      moduleSlug: bucket.moduleSlug,
-      submodule: bucket.submodule,
+      titleKey: `nav.group_${bucket.navGroup}`,
+      url: head.url,
+      moduleSlug: head.moduleSlug,
+      submodule: head.submodule,
       order: bucket.order,
-      capability: bucket.capability,
-      menuKey: bucket.menuKey,
-      items: bucket.children.map(({ titleKey, url, moduleSlug, submodule, capability, menuKey }) => ({
-        titleKey,
-        url,
-        moduleSlug,
-        submodule,
-        capability,
-        menuKey,
-      })),
+      capability: head.capability,
+      menuKey: head.menuKey,
+      items: bucket.children.map((leaf) => leafToItem(leaf)),
     })
   }
 
@@ -465,6 +488,89 @@ export function buildAdminNav(activations: TenantActivation[]) {
       return a.url.localeCompare(b.url)
     })
   }
+  return [...sectionMap.values()]
+    .filter((sec) => sec.items.length > 0)
+    // Legacy groups always trail the blueprint's, whatever `order` the manifests picked.
+    .sort((a, b) => a.order - b.order)
+    .map((sec) => ({ ...sec, order: sec.order + 1000 }))
+}
 
-  return [...sectionMap.values()].sort((a, b) => a.order - b.order)
+/**
+ * Build the dashboard sidebar for a tenant.
+ *
+ * Layout comes from {@link NAV_BLUEPRINT}: ordered, collapsible, role-scoped groups built
+ * around how a café actually works. Routes the blueprint does not claim fall through to
+ * {@link legacySections} so no enabled page is ever orphaned.
+ *
+ * Role filtering is deliberately *not* applied here — this function has no user. It stamps
+ * each section with its `audiences` and each item with any `roles` restriction, and the
+ * caller (`useDashboardNav`) drops what the signed-in user may not see. That keeps this
+ * module free of auth state and unit-testable.
+ */
+export function buildAdminNav(activations: TenantActivation[]): AdminNavSection[] {
+  const leaves = collectNavLeaves(activations)
+  const byPath = new Map<string, NavLeaf>()
+  for (const leaf of leaves) byPath.set(leaf.path, leaf)
+
+  const claimed = new Set<NavLeaf>()
+  const sections: AdminNavSection[] = []
+
+  for (const group of orderedBlueprintGroups()) {
+    const items: AdminNavItem[] = []
+
+    const takeSubtree = (prefixes: string[]): NavLeaf[] => {
+      const found = leaves
+        .filter((l) => !claimed.has(l) && prefixes.some((p) => matchesPrefix(l.path, p)))
+        .sort((a, b) => a.navOrder - b.navOrder || byManifestOrder(a, b))
+      for (const l of found) claimed.add(l)
+      return found
+    }
+
+    // 1. Explicitly listed links, in the blueprint's order.
+    for (const entry of group.entries) {
+      if ("subtree" in entry) {
+        const children = takeSubtree(entry.prefixes)
+        if (children.length === 0) continue
+        const head = children[0]
+        items.push({
+          titleKey: entry.labelKey,
+          url: head.url,
+          moduleSlug: head.moduleSlug,
+          submodule: head.submodule,
+          order: head.order,
+          capability: head.capability,
+          menuKey: head.menuKey,
+          roles: entry.roles,
+          hideFrom: entry.hideFrom,
+          items: children.map((leaf) => leafToItem(leaf)),
+        })
+        continue
+      }
+      const leaf = byPath.get(entry.path)
+      if (!leaf || claimed.has(leaf)) continue
+      claimed.add(leaf)
+      items.push(leafToItem(leaf, entry.roles, entry.hideFrom))
+    }
+
+    // 2. Same-domain routes the blueprint does not list, appended so nothing is lost.
+    if (group.absorb?.length) {
+      for (const leaf of takeSubtree(group.absorb)) items.push(leafToItem(leaf))
+    }
+
+    if (items.length === 0) continue
+    sections.push({
+      section: group.key,
+      labelKey: group.labelKey,
+      order: group.order,
+      items,
+      groupKey: group.key,
+      icon: group.icon,
+      collapsible: group.collapsible,
+      defaultOpenFor: group.defaultOpenFor,
+      audiences: group.audiences,
+      mobilePriority: group.mobilePriority,
+    })
+  }
+
+  return [...sections, ...legacySections(leaves.filter((l) => !claimed.has(l)))]
 }

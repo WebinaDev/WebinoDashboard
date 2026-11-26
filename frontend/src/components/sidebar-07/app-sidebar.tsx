@@ -3,8 +3,10 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 
+import { useSidebar } from "@/components/ui/sidebar"
 import type { NavSection } from "@/hooks/useDashboardNav"
 import { NavMain } from "@/components/sidebar-07/nav-main"
+import { NavMobileQuickAccess } from "@/components/sidebar-07/nav-mobile-quick-access"
 import { NavUser } from "@/components/sidebar-07/nav-user"
 import { SiteBrand } from "@/components/sidebar-07/site-brand"
 import {
@@ -40,6 +42,7 @@ export function AppSidebar({
   tenantPlanLabel: string
 }) {
   const t = useTranslations("sidebar")
+  const { isMobile } = useSidebar()
   const onlyHome =
     !navLoading &&
     navSections.length <= 1 &&
@@ -62,13 +65,23 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroup>
         ) : (
-          navSections.map((section, index) => (
-            <NavMain
-              key={`${section.groupLabel}-${index}`}
-              items={section.items}
-              groupLabel={section.groupLabel}
-            />
-          ))
+          <>
+            {/* On a phone the drawer is the only navigation there is, so the shift-critical
+                links come first as big tap targets instead of hiding inside a collapsed
+                group. */}
+            {isMobile && !onlyHome ? <NavMobileQuickAccess sections={navSections} /> : null}
+            {navSections.map((section) => (
+              <NavMain
+                key={section.groupKey}
+                items={section.items}
+                groupLabel={section.groupLabel}
+                groupKey={section.groupKey}
+                icon={section.icon}
+                collapsible={section.collapsible}
+                defaultOpen={section.defaultOpen}
+              />
+            ))}
+          </>
         )}
         {onlyHome ? (
           <p className="text-muted-foreground px-3 py-2 text-xs leading-relaxed">
