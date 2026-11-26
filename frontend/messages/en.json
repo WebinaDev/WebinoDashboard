@@ -442,7 +442,9 @@
     "section_stock": "Stock & purchasing",
     "section_staff": "Staff",
     "cafe_branch_prices": "Branch prices",
-    "cafe_operations_settings": "Café operations settings"
+    "cafe_operations_settings": "Café operations settings",
+    "group_accounting_more": "More accounting",
+    "group_admin_more": "More"
   },
   "cafe_starter": {
     "catalogue_title": "Digital menu",

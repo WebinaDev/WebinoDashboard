@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
-import { getApiErrorMessage } from "@/lib/api-helpers"
+import { getApiErrorMessage, isForbiddenError } from "@/lib/api-helpers"
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/format-date"
 import { formatNumber, htmlDir, toLocaleDigits } from "@/lib/locale"
 import { MoneyText } from "@/components/currency/MoneyDisplay"
@@ -475,12 +475,17 @@ ${row(t("type_drop"), money(report.drawer.drops_minor))}
   }
 
   if (current.isError) {
-    return (
-      <CafeAdminShell title={t("title")} description={t("description")}>
-        <CafeEmptyState message={t("no_access")} />
-      </CafeAdminShell>
-    )
-  }
+        // 403 means the role really lacks the capability. Anything else is a fault, and its own
+        // message is the only clue the user gets — do not flatten it into «no access».
+        const err = current.error
+        return (
+          <CafeAdminShell title={t("title")} description={t("description")}>
+            <CafeEmptyState
+              message={isForbiddenError(err) ? t("no_access") : getApiErrorMessage(err)}
+            />
+          </CafeAdminShell>
+        )
+      }
 
   return (
     <CafeAdminShell title={t("title")} description={t("description")}>

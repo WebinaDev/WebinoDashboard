@@ -99,6 +99,12 @@ export type BlueprintGroup = {
    * explicitly. They are appended (in manifest order) so no enabled page disappears.
    */
   absorb?: string[]
+  /**
+   * When set, the absorbed routes are gathered into a single nested sub-menu with this
+   * label instead of being appended flat. Keeps a group's top level scannable: the
+   * blueprint's own links stay visible, and everything secondary is one row away.
+   */
+  absorbAs?: string
 }
 
 export const NAV_BLUEPRINT: BlueprintGroup[] = [
@@ -132,12 +138,13 @@ export const NAV_BLUEPRINT: BlueprintGroup[] = [
       { path: "cafe/deliveries" },
       { path: "cafe/reservations" },
       { path: "cafe/amendments" },
+      // Commerce's own till and order screens are enabled on café tenants too. They are not
+      // duplicates of the café pages (different data, different screens), so they stay in the
+      // daily drawer — but folded into two rows, because five flat shop links after eight
+      // café ones is exactly the clutter this group exists to remove.
+      { subtree: "shop_orders", labelKey: "nav.group_orders", prefixes: ["orders"] },
+      { subtree: "shop_till", labelKey: "nav.group_pos", prefixes: ["pos"] },
     ],
-    // Commerce's own till and order screens are enabled on café tenants too. They are not
-    // duplicates of the café pages (different data, different screens), so they are grouped
-    // here rather than left as a stray legacy section — hidden pages are worse than a
-    // slightly longer group.
-    absorb: ["orders", "pos"],
   },
 
   {
@@ -235,6 +242,7 @@ export const NAV_BLUEPRINT: BlueprintGroup[] = [
     // «انبار و خرید» would split the ledger across two groups and put two near-identically
     // named stock links side by side.
     absorb: ["accounting/"],
+    absorbAs: "nav.group_accounting_more",
   },
 
   {
@@ -362,6 +370,7 @@ export const NAV_BLUEPRINT: BlueprintGroup[] = [
       { subtree: "users", labelKey: "nav.group_users", prefixes: ["users", "customers", "staff", "rbac", "tickets", "support", "activity"] },
     ],
     absorb: ["coffee", "account", "settings/c2c", "settings/wallet", "inventory"],
+    absorbAs: "nav.group_admin_more",
   },
 ]
 

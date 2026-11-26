@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api, apiDownload } from "@/lib/api"
+import { getApiErrorMessage, isForbiddenError } from "@/lib/api-helpers"
 import { toLocaleDigits } from "@/lib/locale"
 import { MoneyText } from "@/components/currency/MoneyDisplay"
 
@@ -105,12 +106,17 @@ export default function ManagerPageClient({ route }: { route: ResolvedAdminRoute
   const d = overview.data
 
   if (overview.isError) {
-    return (
-      <CafeAdminShell title={t("title")} description={t("description")}>
-        <CafeEmptyState message={t("no_access")} />
-      </CafeAdminShell>
-    )
-  }
+        // 403 means the role really lacks the capability. Anything else is a fault, and its own
+        // message is the only clue the user gets — do not flatten it into «no access».
+        const err = overview.error
+        return (
+          <CafeAdminShell title={t("title")} description={t("description")}>
+            <CafeEmptyState
+              message={isForbiddenError(err) ? t("no_access") : getApiErrorMessage(err)}
+            />
+          </CafeAdminShell>
+        )
+      }
 
   const maxHourly = Math.max(1, ...(d?.hourly ?? []).map((h) => h.amount_minor))
 

@@ -137,6 +137,30 @@ describe("nav blueprint", () => {
   })
 })
 
+describe("nav shape", () => {
+  it("never builds a drawer that holds a single link", () => {
+    const offenders: string[] = []
+    for (const sec of buildAdminNav(allActivated())) {
+      for (const item of sec.items) {
+        if (item.items?.length === 1) offenders.push(`${sec.section}/${item.url}`)
+        for (const child of item.items ?? []) {
+          if (child.items?.length === 1) offenders.push(`${sec.section}/${child.url}`)
+        }
+      }
+    }
+    assert.deepEqual(offenders, [], `single-child sub-menus: ${offenders.join(", ")}`)
+  })
+
+  it("keeps a group's top level short enough to scan", () => {
+    // With every group folded into one collapsible row, the sub-list is what the user
+    // actually reads. Anything past ~20 rows is a sign the domain needs splitting.
+    for (const sec of buildAdminNav(allActivated())) {
+      if (!sec.groupKey) continue
+      assert.ok(sec.items.length <= 22, `${sec.groupKey} has ${sec.items.length} top-level rows`)
+    }
+  })
+})
+
 describe("nav role scoping", () => {
   const TILL = ["pos.use", "orders.create", "orders.own", "catalog.*"]
 
