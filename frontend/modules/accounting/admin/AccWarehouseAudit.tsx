@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useLocale } from '@/hooks/use-locale-next';
+import { toLocaleDigits } from '@/lib/locale';
 
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/features/modules/accounting/lib/api-client';
@@ -53,7 +54,7 @@ function parsePaginated<T>(axiosData: unknown) {
 
 export default function AccWarehouseAudit() {
   const t = useTranslations();
-  const { formatDateTime } = useLocale();
+  const { locale, formatDateTime } = useLocale();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [rows, setRows] = useState<WarehouseDoc[]>([]);
@@ -277,9 +278,9 @@ export default function AccWarehouseAudit() {
                   <tbody>
                     {formItems.map((item, idx) => (
                       <tr key={idx} className="border-b border-border/60">
-                        <td className="px-3 py-1.5">{idx + 1}</td>
+                        <td className="px-3 py-1.5">{toLocaleDigits(String(idx + 1), locale)}</td>
                         <td className="px-3 py-1.5">{item.product_id || '—'}</td>
-                        <td className="px-3 py-1.5 tabular-nums">{item.quantity}</td>
+                        <td className="px-3 py-1.5 tabular-nums">{toLocaleDigits(String(item.quantity ?? 0), locale)}</td>
                       </tr>
                     ))}
                   </tbody>

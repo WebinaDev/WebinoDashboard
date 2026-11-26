@@ -595,7 +595,7 @@ export default function SettingsIntegrationsPageClient({ route: _route }: { rout
               {qr.data.never_scanned.length > 0 ? (
                 <div className="rounded-lg border p-3">
                   <p className="text-sm font-medium">{t("never_scanned")}</p>
-                  <p className="text-muted-foreground text-xs">{qr.data.never_scanned.join("، ")}</p>
+                  <p className="text-muted-foreground text-xs">{qr.data.never_scanned.join(locale === "fa" ? "، " : ", ")}</p>
                 </div>
               ) : null}
             </>

@@ -77,7 +77,12 @@
     "delete": "حذف",
     "active": "فعال",
     "inactive": "غیرفعال",
-    "status": "وضعیت"
+    "status": "وضعیت",
+    "confirmDeleteNamed": "حذف {name}؟",
+    "confirmDeleteNamedIrreversible": "حذف {name}؟ این عمل قابل بازگشت نیست.",
+    "confirmDeleteReceipt": "حذف این رسید؟ این عمل قابل بازگشت نیست.",
+    "deleted": "حذف شد",
+    "pageOf": "صفحه {page} از {pageCount}"
   },
   "auth": {
     "loginTitle": "ورود",
@@ -3823,7 +3828,13 @@
       "day_close_confirm_body": "پس از بستن، جمع روز قفل می‌شود و دیگر قابل تغییر نیست. ادامه می‌دهید؟",
       "day_closed": "روز کاری بسته شد.",
       "day_empty": "هنوز روزی بسته نشده است.",
-      "status": "وضعیت"
+      "status": "وضعیت",
+      "report_shift": "شیفت",
+      "report_shipping": "ارسال",
+      "report_x_heading": "گزارش موقت (X)",
+      "report_z_heading": "گزارش بستن (Z)",
+      "report_sign_cashier": "امضای صندوق‌دار",
+      "report_sign_manager": "امضای مدیر"
     },
     "floor": {
       "title": "سالن و میزها",
@@ -4687,7 +4698,8 @@
       "revoke": "ابطال",
       "revoked": "باطل‌شده",
       "key_revoked": "کلید باطل شد.",
-      "target_ph": "نام صف چاپ در رایانه صندوق"
+      "target_ph": "نام صف چاپ در رایانه صندوق",
+      "actions": "عملیات"
     },
     "menu_import": {
       "title": "ورود گروهی منو",
@@ -11495,6 +11507,7 @@
       "s_ca2b10ca": "برگشت",
       "s_d2e35a1f": "نوع",
       "s_d89924d9": "پرداختنی",
+      "s_delete_check": "حذف چک",
       "s_e0f7e29a": "حساب بانکی (شناسه)",
       "s_e34fff4e": "+ ایجاد",
       "s_f5668e5b": "مبلغ"
@@ -11731,7 +11744,8 @@
       "s_77ef7b9f": "ایجاد نمودار حساب‌ها",
       "s_ba2d3e64": "تنظیمات پیش‌فرض",
       "s_f2c4117d": "واحد پول",
-      "s_f6b960d1": "تنظیمات حسابداری"
+      "s_f6b960d1": "تنظیمات حسابداری",
+      "s_symbol_label": "نماد واحد پول"
     },
     "accounting_AccWarehouseAudit": {
       "s_1a3a1e69": "اطلاعات واردشده را بررسی و در صورت صحت ثبت کنید.",
@@ -11866,7 +11880,9 @@
     }
   },
   "payments": {
-    "pay_unavailable": "درگاه پرداخت در این نسخه فعال نیست."
+    "pay_unavailable": "درگاه پرداخت در این نسخه فعال نیست.",
+    "pay": "پرداخت",
+    "unavailable": "در دسترس نیست"
   },
   "accounting_cash": {
     "type_terminal": "کارتخوان",
@@ -12126,5 +12142,28 @@
   "accounting_report_export": {
     "csv": "خروجی CSV",
     "print": "چاپ"
+  },
+  "finance": {
+    "journals": {
+      "account": "حساب",
+      "addLine": "افزودن سطر",
+      "credit": "بستانکار",
+      "debit": "بدهکار",
+      "dateRequired": "تاریخ سند الزامی است",
+      "lines": "سطرها",
+      "minLines": "هر سند حداقل به دو سطر نیاز دارد",
+      "new": "سند جدید",
+      "newHint": "اطلاعات سند را وارد کنید.",
+      "notBalanced": "جمع بدهکار و بستانکار برابر نیست",
+      "saving": "در حال ذخیره…",
+      "selectAccount": "یک حساب انتخاب کنید",
+      "totals": "جمع‌ها"
+    },
+    "products": {
+      "tabCategories": "دسته‌بندی‌ها",
+      "tabList": "کالاها",
+      "tabPriceLists": "لیست قیمت",
+      "tabUnits": "واحدها"
+    }
   }
 }

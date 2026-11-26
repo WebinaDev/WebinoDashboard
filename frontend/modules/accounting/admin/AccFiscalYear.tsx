@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from 'next-intl';
+import { useLocaleNext } from '@/hooks/use-locale-next';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/features/modules/accounting/lib/api-client';
@@ -61,6 +63,7 @@ const isOpen = (fy: FiscalYear) =>
 
 export default function AccFiscalYear() {
   const t = useTranslations();
+  const { locale } = useLocaleNext();
   const qc = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -236,20 +239,20 @@ export default function AccFiscalYear() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="fy-start">{t('auto.accounting_AccFiscalYear.s_7f1e4c29')}</Label>
-                <Input
+                <LocaleDatePicker
+                  locale={locale}
                   id="fy-start"
-                  type="date"
                   value={form.starts_on}
-                  onChange={(e) => setForm({ ...form, starts_on: e.target.value })}
+                  onChange={(v) => setForm({ ...form, starts_on: v ?? "" })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="fy-end">{t('auto.accounting_AccFiscalYear.s_d13a2741')}</Label>
-                <Input
+                <LocaleDatePicker
+                  locale={locale}
                   id="fy-end"
-                  type="date"
                   value={form.ends_on}
-                  onChange={(e) => setForm({ ...form, ends_on: e.target.value })}
+                  onChange={(v) => setForm({ ...form, ends_on: v ?? "" })}
                 />
               </div>
             </div>

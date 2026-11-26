@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, Building2, Check, Plus, Trash2 } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
+import { toLocaleDigits } from "@/lib/locale"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "../../cafe/admin/cafe-admin-ui"
 
@@ -53,6 +54,7 @@ type OversoldOrder = {
 
 export default function BranchSettingsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("cafe_admin.branches")
+  const locale = useLocale()
   const queryClient = useQueryClient()
 
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null)
@@ -383,10 +385,10 @@ export default function BranchSettingsPageClient({ route: _route }: { route: Res
                         </td>
                         <td className="text-muted-foreground px-3 py-2 font-mono text-xs">{row.sku ?? "—"}</td>
                         <td className={row.is_negative ? "text-destructive px-3 py-2 font-mono" : "px-3 py-2 font-mono"}>
-                          {row.quantity}
+                          {toLocaleDigits(String(row.quantity ?? 0), locale)}
                         </td>
-                        <td className="px-3 py-2 font-mono">{row.reserved_quantity}</td>
-                        <td className="px-3 py-2 font-mono">{row.available}</td>
+                        <td className="px-3 py-2 font-mono">{toLocaleDigits(String(row.reserved_quantity ?? 0), locale)}</td>
+                        <td className="px-3 py-2 font-mono">{toLocaleDigits(String(row.available ?? 0), locale)}</td>
                       </tr>
                     ))}
                   </tbody>

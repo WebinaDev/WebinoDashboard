@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useLocale, useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -21,7 +22,7 @@ import {
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatDisplayDateTime } from "@/lib/format-date"
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/format-date"
 import { asArray } from "@/lib/list-utils"
 import { toLocaleDigits } from "@/lib/locale"
 
@@ -330,7 +331,7 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
             {t("on_duty")}:{" "}
             {(onDuty.data?.length ?? 0) === 0
               ? t("nobody")
-              : onDuty.data!.map((row) => row.name).join("، ")}
+              : onDuty.data!.map((row) => row.name).join(locale === "fa" ? "، " : ", ")}
           </span>
         </div>
       </CafeSection>
@@ -365,11 +366,11 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
             </div>
             <div className="space-y-1">
               <Label htmlFor="shift-date">{t("work_date")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="shift-date"
-                type="date"
                 value={draft.work_date}
-                onChange={(e) => setDraft({ ...draft, work_date: e.target.value })}
+                onChange={(v) => setDraft({ ...draft, work_date: v ?? "" })}
               />
             </div>
             <div className="space-y-1">
@@ -428,7 +429,7 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
                   {week.data.days.flatMap((day) =>
                     day.shifts.map((shift) => (
                       <TableRow key={shift.id}>
-                        <TableCell>{shift.work_date}</TableCell>
+                        <TableCell>{formatDisplayDate(shift.work_date, locale)}</TableCell>
                         <TableCell>{shift.name}</TableCell>
                         <TableCell className="tabular-nums">
                           {toLocaleDigits(String(shift.hours), locale)}
@@ -463,7 +464,7 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
               <ul className="text-muted-foreground space-y-0.5 text-xs">
                 {week.data!.leave.map((row) => (
                   <li key={row.id}>
-                    {row.name} — {t(`leave_${row.type}`)} ({row.starts_on} → {row.ends_on})
+                    {row.name} — {t(`leave_${row.type}`)} ({formatDisplayDate(row.starts_on, locale)} → {formatDisplayDate(row.ends_on, locale)})
                   </li>
                 ))}
               </ul>
@@ -500,20 +501,20 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
             </div>
             <div className="space-y-1">
               <Label htmlFor="leave-start">{t("from")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="leave-start"
-                type="date"
                 value={leaveDraft.starts_on}
-                onChange={(e) => setLeaveDraft({ ...leaveDraft, starts_on: e.target.value })}
+                onChange={(v) => setLeaveDraft({ ...leaveDraft, starts_on: v ?? "" })}
               />
             </div>
             <div className="space-y-1">
               <Label htmlFor="leave-end">{t("to")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="leave-end"
-                type="date"
                 value={leaveDraft.ends_on}
-                onChange={(e) => setLeaveDraft({ ...leaveDraft, ends_on: e.target.value })}
+                onChange={(v) => setLeaveDraft({ ...leaveDraft, ends_on: v ?? "" })}
               />
             </div>
             <div className="space-y-1 sm:col-span-2">
@@ -552,8 +553,8 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
                     <TableRow key={row.id}>
                       <TableCell>{row.name}</TableCell>
                       <TableCell>{t(`leave_${row.type}`)}</TableCell>
-                      <TableCell>{row.starts_on}</TableCell>
-                      <TableCell>{row.ends_on}</TableCell>
+                      <TableCell>{formatDisplayDate(row.starts_on, locale)}</TableCell>
+                      <TableCell>{formatDisplayDate(row.ends_on, locale)}</TableCell>
                       <TableCell>
                         <Badge variant={row.status === "approved" ? "secondary" : row.status === "rejected" ? "destructive" : "outline"}>
                           {t(`leave_status_${row.status}`)}
@@ -596,21 +597,21 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label htmlFor="pay-start">{t("period_start")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="pay-start"
-                type="date"
                 value={payPeriod.start}
-                onChange={(e) => setPayPeriod({ ...payPeriod, start: e.target.value })}
+                onChange={(v) => setPayPeriod({ ...payPeriod, start: v ?? "" })}
                 className="w-36"
               />
             </div>
             <div className="space-y-1">
               <Label htmlFor="pay-end">{t("period_end")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="pay-end"
-                type="date"
                 value={payPeriod.end}
-                onChange={(e) => setPayPeriod({ ...payPeriod, end: e.target.value })}
+                onChange={(v) => setPayPeriod({ ...payPeriod, end: v ?? "" })}
                 className="w-36"
               />
             </div>
@@ -721,7 +722,7 @@ export default function StaffPageClient({ route: _route }: { route: ResolvedAdmi
           {(onDuty.data?.length ?? 0) > 0 ? (
             <p className="text-muted-foreground text-xs">
               {t("on_duty_since")}:{" "}
-              {onDuty.data!.map((row) => `${row.name} (${formatDisplayDateTime(row.since, locale)})`).join("، ")}
+              {onDuty.data!.map((row) => `${row.name} (${formatDisplayDateTime(row.since, locale)})`).join(locale === "fa" ? "، " : ", ")}
             </p>
           ) : null}
         </CafeSection>

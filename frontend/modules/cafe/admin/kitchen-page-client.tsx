@@ -427,7 +427,7 @@ export default function KitchenPageClient({ route: _route }: { route: ResolvedAd
                             <span>
                               {toLocaleDigits(String(item.quantity), locale)}× {item.name}
                               {item.selections?.length
-                                ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join("، ")})`
+                                ? ` (${item.selections.map((s) => (locale === "fa" ? s.name_fa : s.name_en || s.name_fa)).join(locale === "fa" ? "، " : ", ")})`
                                 : ""}
                             </span>
                           </button>

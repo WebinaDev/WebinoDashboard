@@ -49,7 +49,7 @@ type Statement = {
 export default function PartyStatementsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_parties")
   const tCommon = useTranslations("common")
-  const { formatNumber } = useLocaleNext()
+  const { formatNumber, formatDate } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [selected, setSelected] = useState<number | null>(null)
@@ -199,7 +199,7 @@ export default function PartyStatementsPageClient({ route: _route }: { route: Re
                 <tbody>
                   {(statement.data?.entries ?? []).map((entry, index) => (
                     <tr key={`${entry.date}-${entry.reference ?? index}`} className="border-t">
-                      <td className="p-2 tabular-nums">{entry.date}</td>
+                      <td className="p-2 tabular-nums">{formatDate(entry.date)}</td>
                       <td className="p-2">
                         {t(`kind_${entry.kind}`) === `kind_${entry.kind}` ? entry.kind : t(`kind_${entry.kind}`)}
                         {entry.reference ? <span className="text-muted-foreground ms-2 text-xs" dir="ltr">{entry.reference}</span> : null}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from "next-intl"
 
 import { Badge } from "@/components/ui/badge"
@@ -79,7 +80,7 @@ function isoDate(d: Date): string {
 
 export default function ReconciliationPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_reconciliation")
-  const { formatNumber } = useLocaleNext()
+  const { locale, formatNumber, formatDate } = useLocaleNext()
 
   const [accounts, setAccounts] = useState<CashAccount[]>([])
   const [accountId, setAccountId] = useState("")
@@ -167,7 +168,7 @@ export default function ReconciliationPageClient({ route: _route }: { route: Res
           <tbody>
             {rows.map((row) => (
               <tr key={String(row.id)} className="border-t">
-                <td className="p-2 tabular-nums">{row.date}</td>
+                <td className="p-2 tabular-nums">{formatDate(row.date)}</td>
                 <td className="p-2">
                   <Badge variant={row.type === "credit" ? "default" : "secondary"}>
                     {row.type === "credit" ? t("in") : t("out")}
@@ -212,11 +213,21 @@ export default function ReconciliationPageClient({ route: _route }: { route: Res
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rec-from">{t("from")}</Label>
-            <Input id="rec-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <LocaleDatePicker
+            locale={locale}
+            id="rec-from"
+            value={from}
+            onChange={(v) => setFrom(v ?? "")}
+          />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rec-to">{t("to")}</Label>
-            <Input id="rec-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <LocaleDatePicker
+            locale={locale}
+            id="rec-to"
+            value={to}
+            onChange={(v) => setTo(v ?? "")}
+          />
           </div>
         </div>
 
@@ -339,7 +350,7 @@ export default function ReconciliationPageClient({ route: _route }: { route: Res
                 <tbody>
                   {result.matched.map((row) => (
                     <tr key={`${row.bank_row.id}-${row.ledger_row.id}`} className="border-t">
-                      <td className="p-2 tabular-nums">{row.bank_row.date}</td>
+                      <td className="p-2 tabular-nums">{formatDate(row.bank_row.date)}</td>
                       <td className="p-2 text-end tabular-nums">{money(row.matched_amount)}</td>
                       <td className="p-2">
                         <Badge variant="outline">

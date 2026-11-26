@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
@@ -21,8 +22,8 @@ import {
 import type { ResolvedAdminRoute } from "@/kernel/types"
 import { api } from "@/lib/api"
 import { getApiErrorMessage } from "@/lib/api-helpers"
-import { formatDisplayDateTime } from "@/lib/format-date"
-import { toLocaleDigits } from "@/lib/locale"
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/format-date"
+import { formatNumber, htmlDir, toLocaleDigits } from "@/lib/locale"
 import { MoneyText } from "@/components/currency/MoneyDisplay"
 
 import { CafeAdminShell, CafeEmptyState, CafeSection, cafeSelectClass } from "./cafe-admin-ui"
@@ -337,15 +338,17 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
 
       const row = (label: string, value: string) =>
         `<tr><td>${escapeHtml(label)}</td><td class="v">${escapeHtml(value)}</td></tr>`
+      // The receipt follows the UI language: Persian digits under `fa`, Latin under `en`.
       const money = (value?: number | null) =>
-        value === null || value === undefined ? "-" : Number(value).toLocaleString("fa-IR")
+        value === null || value === undefined ? "-" : formatNumber(Number(value), locale)
 
       const tenders = report.tenders
         .map((tender) => row(tender.tender, `${money(tender.amount_minor)} × ${money(tender.count)}`))
         .join("")
 
-      const html = `<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8">
-<title>${kind === "X" ? "گزارش X" : "گزارش Z"} — شیفت ${report.shift_id}</title>
+      const dir = htmlDir(locale)
+      const html = `<!doctype html><html dir="${dir}" lang="${locale}"><head><meta charset="utf-8">
+<title>${kind === "X" ? t("print_x") : t("print_z")} — ${t("report_shift")} ${report.shift_id}</title>
 <style>
   @page { size: 80mm auto; margin: 4mm; }
   body { font-family: Tahoma, sans-serif; font-size: 11px; color: #000; }
@@ -353,37 +356,37 @@ export default function PosShiftPageClient({ route }: { route: ResolvedAdminRout
   .meta { text-align: center; font-size: 10px; margin-bottom: 6px; }
   table { width: 100%; border-collapse: collapse; }
   td { padding: 1px 0; }
-  td.v { text-align: left; font-variant-numeric: tabular-nums; }
+  td.v { text-align: ${dir === "rtl" ? "left" : "right"}; font-variant-numeric: tabular-nums; }
   .sep { border-top: 1px dashed #000; margin: 5px 0; }
   .tot td { font-weight: bold; }
 </style></head><body>
-<h1>${kind === "X" ? "گزارش موقت (X)" : "گزارش بستن (Z)"}</h1>
-<div class="meta">شیفت ${report.shift_id}${report.cashier ? " — " + escapeHtml(report.cashier) : ""}</div>
-<div class="meta">${escapeHtml(report.generated_at ?? "")}</div>
+<h1>${kind === "X" ? t("report_x_heading") : t("report_z_heading")}</h1>
+<div class="meta">${t("report_shift")} ${report.shift_id}${report.cashier ? " — " + escapeHtml(report.cashier) : ""}</div>
+<div class="meta">${escapeHtml(formatDisplayDateTime(report.generated_at, locale))}</div>
 <div class="sep"></div>
 <table>
-${row("تعداد سفارش", money(report.sales.orders))}
-${row("فروش کل", money(report.sales.gross_minor))}
-${row("تخفیف", money(report.sales.discounts_minor))}
-${row("مالیات", money(report.sales.tax_minor))}
-${row("ارسال", money(report.sales.shipping_minor))}
+${row(t("orders_count"), money(report.sales.orders))}
+${row(t("gross_sales"), money(report.sales.gross_minor))}
+${row(t("discounts"), money(report.sales.discounts_minor))}
+${row(t("tax"), money(report.sales.tax_minor))}
+${row(t("report_shipping"), money(report.sales.shipping_minor))}
 </table>
 <div class="sep"></div>
 <table>${tenders}</table>
 <div class="sep"></div>
 <table>
-${row("موجودی اولیه", money(report.drawer.opening_float_minor))}
-${row("فروش نقدی", money(report.drawer.cash_sales_minor))}
-${row("ورود نقد", money(report.drawer.cash_in_minor))}
-${row("خروج نقد", money(report.drawer.cash_out_minor))}
-${row("تحویل به گاوصندوق", money(report.drawer.drops_minor))}
-<tr class="tot">${row("نقد مورد انتظار", money(report.drawer.expected_minor))}</tr>
-<tr class="tot">${row("شمارش‌شده", money(report.drawer.counted_minor))}</tr>
-<tr class="tot">${row("اختلاف", money(report.drawer.variance_minor))}</tr>
+${row(t("opening_float"), money(report.drawer.opening_float_minor))}
+${row(t("cash_sales"), money(report.drawer.cash_sales_minor))}
+${row(t("type_cash_in"), money(report.drawer.cash_in_minor))}
+${row(t("type_cash_out"), money(report.drawer.cash_out_minor))}
+${row(t("type_drop"), money(report.drawer.drops_minor))}
+<tr class="tot">${row(t("expected_cash"), money(report.drawer.expected_minor))}</tr>
+<tr class="tot">${row(t("counted_cash"), money(report.drawer.counted_minor))}</tr>
+<tr class="tot">${row(t("variance"), money(report.drawer.variance_minor))}</tr>
 </table>
 <div class="sep"></div>
-<div class="meta">امضای صندوق‌دار: ____________</div>
-<div class="meta">امضای مدیر: ____________</div>
+<div class="meta">${t("report_sign_cashier")}: ____________</div>
+<div class="meta">${t("report_sign_manager")}: ____________</div>
 <script>window.onload = () => { window.focus(); window.print(); }</script>
 </body></html>`
 
@@ -772,10 +775,10 @@ ${row("تحویل به گاوصندوق", money(report.drawer.drops_minor))}
         description={t("day_hint")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="date"
+            <LocaleDatePicker
+              locale={locale}
               value={dayDate}
-              onChange={(e) => setDayDate(e.target.value)}
+              onChange={(v) => setDayDate(v ?? "")}
               className="w-40"
               aria-label={t("day_date")}
             />
@@ -814,7 +817,7 @@ ${row("تحویل به گاوصندوق", money(report.drawer.drops_minor))}
               <TableBody>
                 {dayHistory.data!.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell>{row.business_date}</TableCell>
+                    <TableCell>{formatDisplayDate(row.business_date, locale)}</TableCell>
                     <TableCell>{toLocaleDigits(row.shifts, locale)}</TableCell>
                     <TableCell>{money(row.gross_sales_minor)}</TableCell>
                     <TableCell>{money(row.cash_sales_minor)}</TableCell>

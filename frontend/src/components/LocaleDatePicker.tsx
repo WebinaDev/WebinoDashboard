@@ -41,6 +41,7 @@ type Props = {
   /** Include a time of day. Stored value stays Gregorian `YYYY-MM-DDTHH:mm`. */
   withTime?: boolean
   id?: string
+  className?: string
   "aria-label"?: string
 }
 
@@ -61,6 +62,7 @@ export function LocaleDatePicker({
   onChange,
   withTime = false,
   id,
+  className,
   "aria-label": ariaLabel,
 }: Props) {
   if (isRtlLocale(locale)) {
@@ -70,6 +72,7 @@ export function LocaleDatePicker({
         onChange={onChange}
         withTime={withTime}
         id={id}
+        className={className}
         aria-label={ariaLabel}
       />
     )
@@ -81,6 +84,7 @@ export function LocaleDatePicker({
         id={id}
         type="datetime-local"
         aria-label={ariaLabel}
+        className={className}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || null)}
       />
@@ -91,6 +95,7 @@ export function LocaleDatePicker({
     <GregorianLocaleDatePicker
       value={value}
       onChange={onChange}
+      className={className}
       aria-label={ariaLabel}
     />
   )
@@ -101,12 +106,13 @@ function JalaliLocaleDatePicker({
   onChange,
   withTime = false,
   id,
+  className,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
   const dob = jalaliSeed(value, withTime)
 
   return (
-    <div className="max-w-xs" dir={htmlDir("fa")}>
+    <div className={cn(!className && "max-w-xs", className)} dir={htmlDir("fa")}>
       <DatePicker
         id={id}
         calendar={persian}
@@ -135,6 +141,7 @@ function JalaliLocaleDatePicker({
 function GregorianLocaleDatePicker({
   value,
   onChange,
+  className,
   "aria-label": ariaLabel,
 }: Omit<Props, "locale">) {
   const t = useTranslations("common")
@@ -148,7 +155,9 @@ function GregorianLocaleDatePicker({
           variant="outline"
           aria-label={ariaLabel}
           className={cn(
-            "w-full max-w-xs justify-start text-start font-normal",
+            "w-full justify-start text-start font-normal",
+            !className && "max-w-xs",
+            className,
             !value && "text-muted-foreground",
           )}
         >
