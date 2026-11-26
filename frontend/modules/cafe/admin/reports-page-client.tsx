@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
 
@@ -451,21 +452,21 @@ export default function ReportsPageClient({
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label htmlFor="report-from">{t("from")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="report-from"
-                type="date"
                 value={from}
-                onChange={(e) => setFrom(e.target.value)}
+                onChange={(v) => setFrom(v ?? "")}
                 className="w-36"
               />
             </div>
             <div className="space-y-1">
               <Label htmlFor="report-to">{t("to")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="report-to"
-                type="date"
                 value={to}
-                onChange={(e) => setTo(e.target.value)}
+                onChange={(v) => setTo(v ?? "")}
                 className="w-36"
               />
             </div>

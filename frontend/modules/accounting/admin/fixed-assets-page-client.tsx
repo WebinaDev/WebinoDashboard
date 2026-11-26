@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -58,7 +59,7 @@ const blank = {
 export default function FixedAssetsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_fixed_assets")
   const tCommon = useTranslations("common")
-  const { formatNumber } = useLocaleNext()
+  const { locale, formatNumber, formatDate } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [form, setForm] = useState(blank)
@@ -197,7 +198,12 @@ export default function FixedAssetsPageClient({ route: _route }: { route: Resolv
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="fa-date">{t("acquired_on")}</Label>
-            <Input id="fa-date" type="date" value={form.acquired_on} onChange={(e) => setForm((f) => ({ ...f, acquired_on: e.target.value }))} />
+            <LocaleDatePicker
+              locale={locale}
+              id="fa-date"
+              value={form.acquired_on}
+              onChange={(v) => setForm((f) => ({ ...f, acquired_on: v ?? "" }))}
+            />
           </div>
           <label className="flex items-center gap-2 self-end text-sm">
             <Checkbox checked={form.on_credit} onCheckedChange={(v) => setForm((f) => ({ ...f, on_credit: Boolean(v) }))} />
@@ -273,7 +279,7 @@ export default function FixedAssetsPageClient({ route: _route }: { route: Resolv
                 {rows.map((row) => (
                   <tr key={row.id} className="border-t">
                     <td className="p-2">{row.name}</td>
-                    <td className="p-2 tabular-nums">{row.acquired_on}</td>
+                    <td className="p-2 tabular-nums">{formatDate(row.acquired_on)}</td>
                     <td className="p-2 text-end tabular-nums"><MoneyText amount={Math.round(row.cost_minor)} /></td>
                     <td className="p-2 text-end tabular-nums"><MoneyText amount={Math.round(row.monthly_minor)} /></td>
                     <td className="p-2 text-end tabular-nums"><MoneyText amount={Math.round(row.accumulated_minor)} /></td>

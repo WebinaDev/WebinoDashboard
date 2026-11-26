@@ -126,7 +126,7 @@ export default function AccSettings() {
             onCurrencyChange={setCurrency}
             onSymbolChange={setCurrencySymbol}
             currencyLabel={t('auto.accounting_AccSettings.s_f2c4117d')}
-            symbolLabel="نماد واحد پول"
+            symbolLabel={t('auto.accounting_AccSettings.s_symbol_label')}
           />
           <div>
             <label className="mb-1 block text-sm font-medium">{t('auto.accounting_AccSettings.s_432be630')}</label>

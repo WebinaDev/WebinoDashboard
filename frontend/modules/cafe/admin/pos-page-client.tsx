@@ -1233,7 +1233,7 @@ export default function PosPageClient({
                           <Minus className="size-4" />
                         </Button>
                         <span className="w-8 text-center text-sm font-medium tabular-nums">
-                          {line.quantity}
+                          {toLocaleDigits(String(line.quantity), locale)}
                         </span>
                         <Button
                           type="button"

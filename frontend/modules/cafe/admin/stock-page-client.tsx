@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -515,16 +516,11 @@ export default function StockPageClient({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="st-expires">{t("expires_on")}</Label>
-                {/* Gregorian in the field, because a date input is a date input; the expiring
-                  table renders it Jalali like the rest of the app. */}
-                <Input
+                <LocaleDatePicker
+                  locale={locale}
                   id="st-expires"
-                  type="date"
-                  dir="ltr"
                   value={moveForm.expires_on}
-                  onChange={(e) =>
-                    setMoveForm((f) => ({ ...f, expires_on: e.target.value }))
-                  }
+                  onChange={(v) => setMoveForm((f) => ({ ...f, expires_on: v ?? "" }))}
                 />
               </div>
               <div className="space-y-1.5">

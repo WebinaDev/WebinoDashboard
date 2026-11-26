@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -48,7 +49,7 @@ const blank = { supplier_id: "", number: "", supplier_reference: "", issued_on: 
 export default function SupplierBillsPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_supplier_bills")
   const tCommon = useTranslations("common")
-  const { formatNumber } = useLocaleNext()
+  const { locale, formatNumber } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [form, setForm] = useState(blank)
@@ -167,11 +168,21 @@ export default function SupplierBillsPageClient({ route: _route }: { route: Reso
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="b-issued">{t("issued_on")}</Label>
-            <Input id="b-issued" type="date" value={form.issued_on} onChange={(e) => setForm((f) => ({ ...f, issued_on: e.target.value }))} />
+            <LocaleDatePicker
+              locale={locale}
+              id="b-issued"
+              value={form.issued_on}
+              onChange={(v) => setForm((f) => ({ ...f, issued_on: v ?? "" }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="b-due">{t("due_on")}</Label>
-            <Input id="b-due" type="date" value={form.due_on} onChange={(e) => setForm((f) => ({ ...f, due_on: e.target.value }))} />
+            <LocaleDatePicker
+              locale={locale}
+              id="b-due"
+              value={form.due_on}
+              onChange={(v) => setForm((f) => ({ ...f, due_on: v ?? "" }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="b-number">{t("number")}</Label>

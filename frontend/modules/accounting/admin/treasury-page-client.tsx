@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
@@ -59,7 +60,7 @@ function isoDate(d: Date): string {
 
 export default function TreasuryPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_treasury")
-  const { formatNumber } = useLocaleNext()
+  const { locale, formatNumber } = useLocaleNext()
 
   const [from, setFrom] = useState(() => {
     const d = new Date()
@@ -145,11 +146,11 @@ export default function TreasuryPageClient({ route: _route }: { route: ResolvedA
           <div className="flex items-end gap-2">
             <div className="space-y-1">
               <Label htmlFor="tr-from">{t("from")}</Label>
-              <Input id="tr-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-36" />
+              <LocaleDatePicker locale={locale} id="tr-from" value={from} onChange={(v) => setFrom(v ?? "")} className="w-36" />
             </div>
             <div className="space-y-1">
               <Label htmlFor="tr-to">{t("to")}</Label>
-              <Input id="tr-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-36" />
+              <LocaleDatePicker locale={locale} id="tr-to" value={to} onChange={(v) => setTo(v ?? "")} className="w-36" />
             </div>
           </div>
         </div>

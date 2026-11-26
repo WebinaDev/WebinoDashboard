@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { useLocale } from "@/hooks/use-locale-next";
+import { toLocaleDigits } from "@/lib/locale";
 import {
   Dialog,
   DialogContent,
@@ -79,7 +80,7 @@ const BLANK = {
 
 export default function AccCashAccounts() {
   const t = useTranslations();
-  const { formatNumber } = useLocale();
+  const { locale, formatNumber } = useLocale();
 
   const [rows, setRows] = useState<CashAccount[]>([]);
   const [page, setPage] = useState(1);
@@ -300,7 +301,7 @@ export default function AccCashAccounts() {
                   )}
                 </td>
                 <td className="px-3 py-2">{row.bank_name}</td>
-                <td className="px-3 py-2">{row.account_number}</td>
+                <td className="px-3 py-2">{toLocaleDigits(String(row.account_number ?? ""), locale)}</td>
                 <td className="px-3 py-2">
                   <Badge variant={row.is_active ? "default" : "outline"}>
                     {row.is_active

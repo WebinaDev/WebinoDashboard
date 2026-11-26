@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -47,7 +48,7 @@ const blank = { title: "", amount_minor: "", spent_on: "", category: "rent", cas
 export default function ExpensesPageClient({ route: _route }: { route: ResolvedAdminRoute }) {
   const t = useTranslations("accounting_expenses")
   const tCommon = useTranslations("common")
-  const { formatNumber } = useLocaleNext()
+  const { locale, formatNumber, formatDate } = useLocaleNext()
   const queryClient = useQueryClient()
 
   const [form, setForm] = useState(blank)
@@ -124,7 +125,12 @@ export default function ExpensesPageClient({ route: _route }: { route: ResolvedA
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ex-date">{t("spent_on")}</Label>
-            <Input id="ex-date" type="date" value={form.spent_on} onChange={(e) => setForm((f) => ({ ...f, spent_on: e.target.value }))} />
+            <LocaleDatePicker
+              locale={locale}
+              id="ex-date"
+              value={form.spent_on}
+              onChange={(v) => setForm((f) => ({ ...f, spent_on: v ?? "" }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ex-category">{t("category")}</Label>
@@ -200,7 +206,7 @@ export default function ExpensesPageClient({ route: _route }: { route: ResolvedA
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id} className="border-t">
-                    <td className="p-2 tabular-nums">{row.spent_on}</td>
+                    <td className="p-2 tabular-nums">{formatDate(row.spent_on)}</td>
                     <td className="p-2">{row.title}</td>
                     <td className="p-2">{t(`cat_${row.category}`) === `cat_${row.category}` ? row.category : t(`cat_${row.category}`)}</td>
                     <td className="p-2">{row.cash_account_name ?? t("default_cash")}</td>

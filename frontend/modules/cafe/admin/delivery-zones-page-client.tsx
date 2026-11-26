@@ -129,7 +129,7 @@ export default function DeliveryZonesPageClient({ route }: { route: ResolvedAdmi
     setDraft({
       name_fa: zone.name_fa,
       name_en: zone.name_en ?? "",
-      areas: (zone.areas ?? []).join("، "),
+      areas: (zone.areas ?? []).join(locale === "fa" ? "، " : ", "),
       delivery_fee_minor: String(zone.delivery_fee_minor),
       minimum_order_minor: String(zone.minimum_order_minor),
       eta_minutes: zone.eta_minutes === null || zone.eta_minutes === undefined ? "" : String(zone.eta_minutes),
@@ -268,7 +268,7 @@ export default function DeliveryZonesPageClient({ route }: { route: ResolvedAdmi
                     ) : null}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {(zone.areas ?? []).join("، ") || t("no_areas")}
+                    {(zone.areas ?? []).join(locale === "fa" ? "، " : ", ") || t("no_areas")}
                   </p>
                   <p className="text-sm">
                     {t("fee")}: {money(zone.delivery_fee_minor)} · {t("minimum")}:{" "}

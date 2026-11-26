@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useState, useCallback, useEffect } from "react";
 import apiClient from "@/features/modules/accounting/lib/api-client";
 import { getAxiosMessage } from "@/features/modules/accounting/lib/api-helpers";
@@ -86,7 +87,7 @@ const unwrap = (raw: unknown): unknown => {
 
 export default function AccChequeBooks() {
   const t = useTranslations();
-  const { formatNumber, formatDate } = useLocale();
+  const { locale, formatNumber, formatDate } = useLocale();
 
   const [books, setBooks] = useState<BookRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -593,13 +594,10 @@ export default function AccChequeBooks() {
               <label className="mb-1 block text-sm font-medium">
                 {t("accounting_cheque_books.due")}
               </label>
-              <Input
-                dir="ltr"
-                type="date"
+              <LocaleDatePicker
+                locale={locale}
                 value={issue.due_date}
-                onChange={(e) =>
-                  setIssue({ ...issue, due_date: e.target.value })
-                }
+                onChange={(v) => setIssue({ ...issue, due_date: v ?? "" })}
               />
             </div>
             <div>

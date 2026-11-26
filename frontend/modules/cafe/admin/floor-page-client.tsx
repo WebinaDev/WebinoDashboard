@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LocaleDatePicker } from "@/components/LocaleDatePicker";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -438,11 +439,12 @@ export default function FloorPageClient({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="reserve-time">{t("reserve_time")}</Label>
-              <Input
+              <LocaleDatePicker
+                locale={locale}
                 id="reserve-time"
-                type="datetime-local"
+                withTime
                 value={reserveTime}
-                onChange={(e) => setReserveTime(e.target.value)}
+                onChange={(v) => setReserveTime(v ?? "")}
               />
             </div>
           </div>
