@@ -119,17 +119,41 @@ export function useDashboardNav() {
           items: nested,
         })
       }
-      if (items.length > 0) {
-        result.push({
-          groupKey: sec.groupKey ?? sec.section,
-          groupLabel: t(sec.labelKey.replace("nav.", "") as never),
-          items,
-          icon: resolveNavGroupIcon(sec.icon ?? "overview"),
-          collapsible: sec.collapsible !== false,
-          defaultOpen: groupDefaultOpenForRole(sec, role),
-          mobilePriority: sec.mobilePriority,
-        })
-      }
+      if (items.length === 0) continue
+
+      const groupKey = sec.groupKey ?? sec.section
+      const groupLabel = t(sec.labelKey.replace("nav.", "") as never)
+      const groupIcon = resolveNavGroupIcon(sec.icon ?? "overview")
+
+      // The heading above is a label, not a control. Under it sits ONE collapsible row that
+      // carries the group's links as its sub-menu — so a section reads as
+      //   «کار روزانه»  (hint)
+      //     ▸ کار روزانه  (the only menu row)
+      //         ثبت سفارش / میز کار / …
+      // A section with a single plain link («پیشخوان») is not worth a wrapper: collapsing
+      // one destination only adds a click.
+      const wrapped: NavMainItem[] =
+        items.length === 1 && !items[0].items?.length
+          ? [{ ...items[0], icon: items[0].icon ?? groupIcon }]
+          : [
+              {
+                id: `group:${groupKey}`,
+                title: groupLabel,
+                url: items[0].url,
+                icon: groupIcon,
+                items,
+              },
+            ]
+
+      result.push({
+        groupKey,
+        groupLabel,
+        items: wrapped,
+        icon: groupIcon,
+        collapsible: sec.collapsible !== false,
+        defaultOpen: groupDefaultOpenForRole(sec, role),
+        mobilePriority: sec.mobilePriority,
+      })
     }
 
     return result

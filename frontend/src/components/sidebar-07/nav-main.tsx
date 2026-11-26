@@ -138,137 +138,92 @@ function NavMainComponent({
   items,
   groupLabel,
   groupKey,
-  icon: GroupIcon,
-  collapsible = true,
-  defaultOpen = false,
+  defaultOpenFirst = false,
 }: {
   items: NavMainItem[]
   groupLabel: string
-  /** Blueprint group key — stable React key and the anchor for the collapsed state. */
+  /** Blueprint group key — stable React key and the a11y/test hook. */
   groupKey?: string
-  icon?: LucideIcon
-  collapsible?: boolean
-  /** Start expanded. The blueprint sets this for the groups a shift begins in. */
-  defaultOpen?: boolean
+  /**
+   * Start the first collapsible in this section expanded. The blueprint sets it for the
+   * groups a shift begins in, so a cashier lands on the till rather than on a closed row.
+   */
+  defaultOpenFirst?: boolean
 }) {
   const pathname = usePathname() ?? ""
   const locale = useLocale()
   const Chevron = locale === "fa" ? ChevronLeft : ChevronRight
+
   const routeOpenId = useMemo(() => activeGroupId(items, pathname), [items, pathname])
-  const [openId, setOpenId] = useState<string | null>(() => routeOpenId)
+  const [openId, setOpenId] = useState<string | null>(
+    () => routeOpenId ?? (defaultOpenFirst && items[0]?.items?.length ? itemId(items[0]) : null),
+  )
 
   useEffect(() => {
     setOpenId(routeOpenId)
   }, [routeOpenId])
 
-  // Walking into any page of a group must reveal it, even if the user collapsed it.
-  const containsActive = useMemo(
-    () =>
-      items.some(
-        (item) =>
-          pathIsActive(pathname, item.url) ||
-          Boolean(item.items?.some((sub) => subItemIsActive(sub, pathname))),
-      ),
-    [items, pathname],
-  )
-  const [sectionOpen, setSectionOpen] = useState<boolean>(() => defaultOpen || containsActive)
-
-  // Reveal the group during the same render the route lands in it, rather than in an
-  // effect — an effect would paint the collapsed group for one frame and then spring it
-  // open, and it is the pattern the react-hooks lint rule exists to prevent.
-  const [wasActive, setWasActive] = useState(containsActive)
-  if (containsActive !== wasActive) {
-    setWasActive(containsActive)
-    if (containsActive) setSectionOpen(true)
-  }
-
-  const menu = (
-    <SidebarMenu data-testid="admin-nav-main">
-      {items.map((item) => {
-        const id = itemId(item)
-        const subItems = item.items
-        const Icon = item.icon
-
-        if (!subItems?.length) {
-          const active = pathIsActive(pathname, item.url)
-          return (
-            <SidebarMenuItem key={id}>
-              <SidebarMenuButton
-                asChild
-                isActive={active}
-                tooltip={item.title}
-                data-testid={active ? "nav-active" : `nav-item-${item.url}`}
-              >
-                <Link href={item.url}>
-                  {Icon ? <Icon /> : null}
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )
-        }
-
-        return (
-          <SidebarMenuItem key={id}>
-            <Collapsible
-              open={openId === id}
-              onOpenChange={(open) => {
-                setOpenId(open ? id : null)
-              }}
-              className="group/collapsible"
-            >
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {Icon ? <Icon /> : null}
-                  <span>{item.title}</span>
-                  <Chevron className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  <NavSubMenu items={subItems} pathname={pathname} />
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarMenuItem>
-        )
-      })}
-    </SidebarMenu>
-  )
-
-  // "پیشخوان" is a single permanent link, not a drawer — collapsing it would only add a
-  // click to the one destination everybody needs.
-  if (!collapsible) {
-    return (
-      <SidebarGroup data-nav-group={groupKey}>
-        <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
-        {menu}
-      </SidebarGroup>
-    )
-  }
-
   return (
     <SidebarGroup data-nav-group={groupKey}>
-      <Collapsible
-        open={sectionOpen}
-        onOpenChange={setSectionOpen}
-        className="group/section"
-        data-testid={`nav-section-${groupKey ?? groupLabel}`}
-      >
-        <CollapsibleTrigger asChild>
-          <SidebarGroupLabel
-            asChild
-            className="w-full cursor-pointer select-none rounded-md px-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <button type="button" className="flex w-full items-center gap-2 text-start">
-              {GroupIcon ? <GroupIcon className="size-4 shrink-0" aria-hidden /> : null}
-              <span className="truncate">{groupLabel}</span>
-              <Chevron className="ms-auto size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-90" />
-            </button>
-          </SidebarGroupLabel>
-        </CollapsibleTrigger>
-        <CollapsibleContent>{menu}</CollapsibleContent>
-      </Collapsible>
+      {/*
+        The heading is a label, not a control. It exists to say which drawer the links below
+        belong to; making it clickable added a control that either duplicated the first link
+        or hid the whole group behind a click nobody asked for.
+      */}
+      <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
+      <SidebarMenu data-testid="admin-nav-main">
+        {items.map((item) => {
+          const id = itemId(item)
+          const subItems = item.items
+          const Icon = item.icon
+
+          if (!subItems?.length) {
+            const active = pathIsActive(pathname, item.url)
+            return (
+              <SidebarMenuItem key={id}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={item.title}
+                  data-testid={active ? "nav-active" : `nav-item-${item.url}`}
+                >
+                  <Link href={item.url}>
+                    {Icon ? <Icon /> : null}
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          }
+
+          const groupActive = subItems.some((sub) => subItemIsActive(sub, pathname))
+          return (
+            <SidebarMenuItem key={id}>
+              <Collapsible
+                open={openId === id}
+                onOpenChange={(open) => {
+                  setOpenId(open ? id : null)
+                }}
+                className="group/collapsible"
+                data-testid={`nav-group-${groupKey ?? groupLabel}`}
+              >
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton tooltip={item.title} isActive={groupActive}>
+                    {Icon ? <Icon /> : null}
+                    <span>{item.title}</span>
+                    <Chevron className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    <NavSubMenu items={subItems} pathname={pathname} />
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarMenuItem>
+          )
+        })}
+      </SidebarMenu>
     </SidebarGroup>
   )
 }

@@ -442,7 +442,9 @@
     "section_stock": "انبار و خرید",
     "section_staff": "پرسنل",
     "cafe_branch_prices": "قیمت شعب",
-    "cafe_operations_settings": "تنظیمات عملیات کافه"
+    "cafe_operations_settings": "تنظیمات عملیات کافه",
+    "group_accounting_more": "سایر بخش‌های حسابداری",
+    "group_admin_more": "سایر موارد"
   },
   "dashboard": {
     "title": "نمای کلی",

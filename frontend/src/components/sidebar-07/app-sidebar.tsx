@@ -76,9 +76,7 @@ export function AppSidebar({
                 items={section.items}
                 groupLabel={section.groupLabel}
                 groupKey={section.groupKey}
-                icon={section.icon}
-                collapsible={section.collapsible}
-                defaultOpen={section.defaultOpen}
+                defaultOpenFirst={section.defaultOpen}
               />
             ))}
           </>

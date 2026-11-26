@@ -532,6 +532,12 @@ export function buildAdminNav(activations: TenantActivation[]): AdminNavSection[
         const children = takeSubtree(entry.prefixes)
         if (children.length === 0) continue
         const head = children[0]
+        // A drawer holding one link is not a drawer. Render the link itself and save the
+        // click, the chevron and the duplicated label.
+        if (children.length === 1) {
+          items.push(leafToItem(head, entry.roles, entry.hideFrom))
+          continue
+        }
         items.push({
           titleKey: entry.labelKey,
           url: head.url,
@@ -552,9 +558,29 @@ export function buildAdminNav(activations: TenantActivation[]): AdminNavSection[
       items.push(leafToItem(leaf, entry.roles, entry.hideFrom))
     }
 
-    // 2. Same-domain routes the blueprint does not list, appended so nothing is lost.
+    // 2. Same-domain routes the blueprint does not list, so nothing is lost. Flat by
+    //    default; folded into one labelled sub-menu when the group asks for it.
     if (group.absorb?.length) {
-      for (const leaf of takeSubtree(group.absorb)) items.push(leafToItem(leaf))
+      const rest = takeSubtree(group.absorb)
+      if (rest.length === 1) {
+        items.push(leafToItem(rest[0]))
+      } else if (rest.length > 0) {
+        if (group.absorbAs) {
+          const head = rest[0]
+          items.push({
+            titleKey: group.absorbAs,
+            url: head.url,
+            moduleSlug: head.moduleSlug,
+            submodule: head.submodule,
+            order: head.order,
+            capability: head.capability,
+            menuKey: head.menuKey,
+            items: rest.map((leaf) => leafToItem(leaf)),
+          })
+        } else {
+          for (const leaf of rest) items.push(leafToItem(leaf))
+        }
+      }
     }
 
     if (items.length === 0) continue

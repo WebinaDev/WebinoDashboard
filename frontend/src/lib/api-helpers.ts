@@ -65,6 +65,22 @@ function firstValidationError(errors: Record<string, unknown> | undefined): stri
 /**
  * Persian-friendly message for fetch/`ApiError` failures (ERP `getAxiosMessage` parity).
  */
+/**
+ * True only for a real 403.
+ *
+ * Several café boards used to render «برای این بخش دسترسی ندارید» for *any* failed query.
+ * A 500, a timeout or a dropped network all looked like a permissions problem, which sends
+ * the owner hunting through roles and capabilities while the actual fault — usually a
+ * server error with its own message — stays hidden. Callers must distinguish the two.
+ */
+export function isForbiddenError(err: unknown): boolean {
+  const status =
+    err && typeof err === "object" && "status" in err
+      ? Number((err as { status?: number }).status)
+      : undefined
+  return status === 403
+}
+
 export function getApiErrorMessage(err: unknown, bodyArg?: ErrorBody | null): string {
   // Fall back to the response body the ApiError carries so server messages
   // (e.g. "cafe is closed") are shown instead of a generic status text.
